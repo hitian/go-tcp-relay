@@ -1,0 +1,27 @@
+on:
+  push:
+    branches:
+      - master
+name: github build release
+jobs:
+  build:
+    name: build-github-release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Setup Go build
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+      id: go
+    - name: Prepare env
+      run: sudo apt-get update -y && sudo apt-get install -y upx
+    - name: Build
+      run: make build-all
+    - name: Release
+      run: |
+        go get -u github.com/tcnksm/ghr
+        ghr $(date +'%Y-%m-%d_%H_%M_%S') bin
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
