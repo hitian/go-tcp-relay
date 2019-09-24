@@ -21,7 +21,7 @@ jobs:
     - name: Release
       run: |
         go get -u github.com/tcnksm/ghr
-        $GOPATH/bin/ghr $(date +'%Y-%m-%d_%H_%M_%S') bin
+        $(go env GOPATH)/bin/ghr $(date +'%Y-%m-%d_%H_%M_%S') bin
       shell: bash
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
