@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -129,10 +130,20 @@ func (m *remoteManager) Pick() (remoteInfo, error) {
 	retryTimeLimit := time.Now().Add(-time.Minute)
 
 	for _, item := range m.list {
-		if item.IsDown && item.LastTry.After(retryTimeLimit) {
-			continue
+		if item.IsDown {
+			if item.LastTry.After(retryTimeLimit) {
+				continue
+			}
+			//reset
+			item.IsDown = false
+			item.DialDuration = 0
+			m.list[item.ID] = item
 		}
 		list = append(list, item)
+	}
+
+	if len(list) < 1 {
+		return remoteInfo{}, errors.New("All remote check failed")
 	}
 
 	ordered := remoteInfoList(list)
