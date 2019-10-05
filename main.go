@@ -86,7 +86,6 @@ func handleConn(conn net.Conn) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go relayConn(conn, r, wg)
-	wg.Add(1)
 	go relayConn(r, conn, wg)
 
 	wg.Wait()
