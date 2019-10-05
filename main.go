@@ -52,7 +52,7 @@ func startServer(listen, targets string) error {
 
 func handleConn(conn net.Conn) {
 	defer conn.Close()
-	log.Println("conn accept from ", conn.LocalAddr())
+	log.Println("accept from ", conn.RemoteAddr())
 
 	var r net.Conn
 	for {
@@ -78,25 +78,34 @@ func handleConn(conn net.Conn) {
 		break
 	}
 
+	desc := fmt.Sprintf("%s -> %s", conn.RemoteAddr(), r.RemoteAddr())
+
 	defer r.Close()
-	log.Println("remote connected ", r.RemoteAddr())
+	log.Println(desc, "connected")
 	r.(*net.TCPConn).SetKeepAlive(true)
 	r.(*net.TCPConn).SetNoDelay(true)
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go relayConn(conn, r, wg)
-	go relayConn(r, conn, wg)
+	inChan := make(chan int, 1)
+	outChan := make(chan int, 1)
 
-	wg.Wait()
-	log.Println("connection disconnected ", conn.LocalAddr())
+	go relayConn(conn, r, outChan)
+	go relayConn(r, conn, inChan)
+
+	select {
+	case <-inChan:
+		log.Println(desc, "in closed")
+	case <-outChan:
+		log.Println(desc, "out closed")
+	}
+	log.Println(desc, "disconnected ")
 }
 
-func relayConn(in, out net.Conn, wg *sync.WaitGroup) {
-	defer wg.Done()
+func relayConn(in, out net.Conn, ch chan int) {
+	defer func() {
+		ch <- 1
+	}()
 	_, err := io.Copy(out, in)
 	if err != nil {
-		log.Println(err)
 		return
 	}
 }
